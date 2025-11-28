@@ -1,8 +1,7 @@
-
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { ReportPreview } from './components/ReportPreview';
 import { ReportData, ReportTemplate } from './types';
-import { Printer, Settings, CheckCircle2, LayoutTemplate, Palette, Upload, Trash2, Hash, X, Plus, Check, Loader2, AlertTriangle, Share2, Info } from 'lucide-react';
+import { Printer, Settings, CheckCircle2, LayoutTemplate, Palette, Upload, Trash2, Hash, X, Plus, Check, Loader2, AlertTriangle, Share2, Info, ExternalLink } from 'lucide-react';
 
 const INITIAL_DATA: ReportData = {
   companyName: "Rimberio y asociados",
@@ -61,10 +60,35 @@ const INITIAL_DATA: ReportData = {
 };
 
 export default function App() {
-  const [data, setData] = useState<ReportData>(INITIAL_DATA);
-  const [template, setTemplate] = useState<ReportTemplate>('classic');
+  // Initialize state from LocalStorage if available to prevent data loss on refresh/new tab
+  const [data, setData] = useState<ReportData>(() => {
+      try {
+          const saved = localStorage.getItem('reportData');
+          return saved ? JSON.parse(saved) : INITIAL_DATA;
+      } catch (e) {
+          console.error("Error loading saved data", e);
+          return INITIAL_DATA;
+      }
+  });
+  
+  const [template, setTemplate] = useState<ReportTemplate>(() => {
+      const saved = localStorage.getItem('reportTemplate');
+      return (saved as ReportTemplate) || 'classic';
+  });
+
   const [showConfig, setShowConfig] = useState(true);
   
+  // Persist data changes
+  useEffect(() => {
+      try {
+        localStorage.setItem('reportData', JSON.stringify(data));
+      } catch (e) { console.error("Error saving data", e); }
+  }, [data]);
+
+  useEffect(() => {
+      localStorage.setItem('reportTemplate', template);
+  }, [template]);
+
   // PDF Generation State
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationStatus, setGenerationStatus] = useState('');
@@ -75,6 +99,10 @@ export default function App() {
 
   const componentRef = useRef<HTMLDivElement>(null);
   
+  const openInNewTab = () => {
+      window.open(window.location.href, '_blank');
+  };
+
   const validateAndPrint = async () => {
     if (isGenerating) return;
     
@@ -212,14 +240,10 @@ export default function App() {
                          if (!beforePrintFired) {
                              console.error('❌ [DIAGNÓSTICO FINAL] El diálogo de impresión NO se abrió.');
                              console.warn('   🔍 CAUSA PROBABLE: El navegador o el entorno bloqueó la acción.');
-                             console.warn('   🛠️ SOLUCIÓN:');
-                             console.warn('      1. Busque un icono de "Ventana emergente bloqueada" en la barra de direcciones.');
-                             console.warn('      2. Si está en un entorno de desarrollo (StackBlitz/CodeSandbox), intente abrir la vista previa en una nueva pestaña.');
-                             console.warn('      3. Revise los permisos del navegador.');
                              
                              setPrintFeedback({
                                  type: 'error',
-                                 message: "Error: El navegador bloqueó la impresión. Abra la vista previa en una nueva pestaña o revise los bloqueadores de pop-ups."
+                                 message: "El navegador bloqueó la impresión. Por favor, abra en una nueva pestaña:"
                              });
                          } else {
                              // If it fired, we just assume it's pending user action or finished
@@ -584,6 +608,15 @@ export default function App() {
             
             <div className="flex items-center gap-3">
                 <button 
+                    onClick={openInNewTab}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 font-medium text-sm transition-all"
+                    title="Abrir en nueva pestaña (evita bloqueos de impresión)"
+                >
+                    <ExternalLink className="w-4 h-4" />
+                    <span className="hidden sm:inline">Nueva Pestaña</span>
+                </button>
+
+                <button 
                     onClick={() => console.log('Share Report action initiated')}
                     className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 font-medium text-sm transition-all"
                 >
@@ -632,7 +665,17 @@ export default function App() {
                          printFeedback.type === 'error' ? <AlertTriangle className="w-5 h-5 flex-shrink-0" /> : <Info className="w-5 h-5 flex-shrink-0" />}
                         <span className="text-sm font-medium">{printFeedback.message}</span>
                     </div>
-                    <button onClick={() => setPrintFeedback(null)} className="p-1 hover:bg-black/5 rounded-full">
+                    
+                    {printFeedback.type === 'error' && (
+                        <button 
+                            onClick={openInNewTab}
+                            className="ml-auto text-xs bg-white border border-red-200 hover:bg-red-50 text-red-700 px-3 py-1.5 rounded-md font-medium transition-colors shadow-sm"
+                        >
+                            Abrir en Nueva Pestaña
+                        </button>
+                    )}
+
+                    <button onClick={() => setPrintFeedback(null)} className="p-1 hover:bg-black/5 rounded-full ml-2">
                         <X className="w-4 h-4" />
                     </button>
                 </div>

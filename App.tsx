@@ -164,14 +164,30 @@ export default function App() {
         // Slight delay to allow React to remove the overlay from DOM
         setTimeout(() => {
             if (typeof window.print === 'function') {
-                console.log('🔄 Iniciando secuencia de impresión...');
+                // START DIAGNOSTIC LOGGING
+                console.group('🖨️ Diagnóstico de Impresión');
+                console.log('1. [App] Iniciando solicitud de impresión...');
+
+                let beforePrintFired = false;
 
                 const handleBeforePrint = () => {
-                    console.log('🖨️ Evento: beforeprint detectado. El navegador está abriendo el diálogo de impresión.');
+                    beforePrintFired = true;
+                    console.log('2. [Navegador] ✅ Evento `beforeprint` detectado: El diálogo de impresión se está abriendo.');
                 };
 
                 const handleAfterPrint = () => {
-                    console.log('✅ Evento: afterprint detectado. El diálogo de impresión se ha cerrado (Impreso o Cancelado).');
+                    console.log('3. [Navegador] 🏁 Evento `afterprint` detectado: El ciclo de impresión ha finalizado.');
+                    
+                    if (beforePrintFired) {
+                        console.log('ℹ️ [CONCLUSIÓN] El proceso técnico funcionó correctamente.');
+                        console.log('   👉 Si se generó el PDF: El usuario confirmó la acción.');
+                        console.log('   👉 Si NO se generó: El usuario presionó "Cancelar" o cerró el diálogo.');
+                        console.log('   (Nota: Los navegadores no permiten al código saber qué botón pulsó por privacidad).');
+                    } else {
+                        console.error('❌ [ERROR] Se cerró el ciclo sin detectar la apertura del diálogo (`beforeprint`).');
+                    }
+                    console.groupEnd();
+                    
                     // Cleanup listeners
                     window.removeEventListener('beforeprint', handleBeforePrint);
                     window.removeEventListener('afterprint', handleAfterPrint);
@@ -181,25 +197,50 @@ export default function App() {
                 window.addEventListener('afterprint', handleAfterPrint);
 
                 try {
-                    console.log('🚀 Ejecutando window.print()...');
-                    window.print();
-                    console.log('✨ window.print() llamado exitosamente.');
+                    console.log('🚀 [App] Ejecutando window.print()...');
                     
-                    // Show feedback message after print dialog invocation
+                    // Prepare initial feedback
                     setPrintFeedback({
-                        type: 'success',
-                        message: "La validación fue exitosa y se ha abierto el diálogo de impresión. Si el PDF no se descargó, verifique si canceló la acción o si su navegador bloqueó la ventana emergente."
+                        type: 'info',
+                        message: "Solicitando impresión..."
                     });
+
+                    window.print();
+                    
+                    // Check diagnosis after a short delay to catch "Ignored" or "Blocked" states
+                    setTimeout(() => {
+                         if (!beforePrintFired) {
+                             console.error('❌ [DIAGNÓSTICO FINAL] El diálogo de impresión NO se abrió.');
+                             console.warn('   🔍 CAUSA PROBABLE: El navegador o el entorno bloqueó la acción.');
+                             console.warn('   🛠️ SOLUCIÓN:');
+                             console.warn('      1. Busque un icono de "Ventana emergente bloqueada" en la barra de direcciones.');
+                             console.warn('      2. Si está en un entorno de desarrollo (StackBlitz/CodeSandbox), intente abrir la vista previa en una nueva pestaña.');
+                             console.warn('      3. Revise los permisos del navegador.');
+                             
+                             setPrintFeedback({
+                                 type: 'error',
+                                 message: "Error: El navegador bloqueó la impresión. Abra la vista previa en una nueva pestaña o revise los bloqueadores de pop-ups."
+                             });
+                         } else {
+                             // If it fired, we just assume it's pending user action or finished
+                             setPrintFeedback({
+                                type: 'success',
+                                message: "Diálogo abierto. Si no ve el PDF, verifique si pulsó 'Cancelar' accidentalmente."
+                            });
+                         }
+                    }, 1000);
+                    
                 } catch (err) {
-                    console.error('❌ Error crítico al ejecutar window.print():', err);
+                    console.error('❌ [Error Excepción] Falló window.print():', err);
                     setPrintFeedback({
                         type: 'error',
-                        message: "Ocurrió un error interno al intentar abrir la impresión. Revise la consola del navegador."
+                        message: "Error técnico al iniciar la impresión."
                     });
+                    console.groupEnd();
                 }
             } else {
-                console.error('❌ window.print no está disponible en este navegador.');
-                setPdfError("Su navegador no soporta la función de impresión automática. Intente usar Ctrl+P (o Cmd+P).");
+                console.error('❌ window.print no soportado.');
+                setPdfError("Su navegador no soporta impresión automática. Use Ctrl+P.");
             }
         }, 500);
 
@@ -583,10 +624,12 @@ export default function App() {
             {/* Info/Success Feedback Banner */}
             {printFeedback && (
                 <div className={`p-4 mx-4 mt-4 rounded-lg flex items-center justify-between animate-in slide-in-from-top-2 border shadow-sm ${
-                    printFeedback.type === 'success' ? 'bg-green-50 text-green-800 border-green-200' : 'bg-blue-50 text-blue-800 border-blue-200'
+                    printFeedback.type === 'success' ? 'bg-green-50 text-green-800 border-green-200' : 
+                    printFeedback.type === 'error' ? 'bg-red-50 text-red-800 border-red-200' : 'bg-blue-50 text-blue-800 border-blue-200'
                 }`}>
                     <div className="flex items-center gap-3">
-                        {printFeedback.type === 'success' ? <CheckCircle2 className="w-5 h-5 flex-shrink-0" /> : <Info className="w-5 h-5 flex-shrink-0" />}
+                        {printFeedback.type === 'success' ? <CheckCircle2 className="w-5 h-5 flex-shrink-0" /> : 
+                         printFeedback.type === 'error' ? <AlertTriangle className="w-5 h-5 flex-shrink-0" /> : <Info className="w-5 h-5 flex-shrink-0" />}
                         <span className="text-sm font-medium">{printFeedback.message}</span>
                     </div>
                     <button onClick={() => setPrintFeedback(null)} className="p-1 hover:bg-black/5 rounded-full">

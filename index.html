@@ -4,68 +4,23 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Rimberio Real Estate Reporter</title>
-    <script>
-      // Suppress Tailwind CDN warning since we are intentionally using it for this static demo without a build step
-      const originalWarn = console.warn;
-      console.warn = (...args) => {
-        if (args[0] && typeof args[0] === 'string' && args[0].includes('cdn.tailwindcss.com should not be used in production')) {
-          return;
-        }
-        originalWarn.apply(console, args);
-      };
-    </script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              brand: {
-                light: '#A8D8D3',
-                DEFAULT: '#8EB8B5',
-                dark: '#6A908D',
-              },
-              secondary: '#BDBAB5'
-            }
-          }
-        }
-      }
-    </script>
-    
-    <!-- Babel Standalone for in-browser JSX/TSX compilation -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
-    <style>
-      @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap');
-      body {
-        font-family: 'Montserrat', sans-serif;
-      }
-      @media print {
-        @page { margin: 0; size: auto; }
-        body { margin: 0; -webkit-print-color-adjust: exact; }
-        .no-print { display: none !important; }
-        .print-break { page-break-after: always; }
-      }
-    </style>
   <script type="importmap">
 {
   "imports": {
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
     "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
-    "react-dom/client": "https://aistudiocdn.com/react-dom@^19.2.0/client",
-    "react-dom": "https://aistudiocdn.com/react-dom@^19.2.0",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0",
     "react/": "https://aistudiocdn.com/react@^19.2.0/",
     "react": "https://aistudiocdn.com/react@^19.2.0",
-    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0",
-    "react-to-print": "https://aistudiocdn.com/react-to-print@^3.2.0",
-    "recharts": "https://aistudiocdn.com/recharts@^3.5.0",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/"
+    "recharts": "https://aistudiocdn.com/recharts@^3.5.1",
+    "vite": "https://aistudiocdn.com/vite@^7.2.4",
+    "@vitejs/plugin-react-swc": "https://aistudiocdn.com/@vitejs/plugin-react-swc@^4.2.2"
   }
 }
 </script>
 </head>
   <body class="bg-gray-100 text-gray-800">
     <div id="root"></div>
-    <!-- Entry point for the application compiled by Babel -->
-    <script type="text/babel" data-type="module" src="./index.tsx"></script>
+    <script type="module" src="/main.tsx"></script>
   </body>
 </html>

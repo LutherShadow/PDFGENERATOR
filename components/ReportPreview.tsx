@@ -1,7 +1,6 @@
 import React from 'react';
-import { ReportData, ReportTemplate } from '../types.ts';
+import { ReportData, ReportTemplate } from '../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { MapPin, Building, Ruler, Info } from 'lucide-react';
 
 interface ReportPreviewProps {
   data: ReportData;

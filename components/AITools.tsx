@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { generateImage, editImage, analyzeImage, generateSpeech } from '../services/geminiService.ts';
-import { AspectRatio, ImageSize } from '../types.ts';
+import { generateImage, editImage, analyzeImage, generateSpeech } from '../services/geminiService';
+import { AspectRatio, ImageSize } from '../types';
 import { Wand2, ImagePlus, Mic, ScanEye, PlayCircle, Loader2 } from 'lucide-react';
 
 interface AIToolsProps {

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ReportPreview } from './components/ReportPreview.tsx';
-import { ReportData, ReportTemplate } from './types.ts';
+import { ReportPreview } from './components/ReportPreview';
+import { ReportData, ReportTemplate } from './types';
 import { Printer, Settings, CheckCircle2, LayoutTemplate, Palette, Upload, Trash2, Hash, X, Plus, Check, Loader2, AlertTriangle, Share2, Info, ExternalLink } from 'lucide-react';
 
 const INITIAL_DATA: ReportData = {

@@ -10,7 +10,7 @@ interface ReportPreviewProps {
 const COLORS = ['#8EB8B5', '#BDBAB5', '#6A908D', '#E5E7EB', '#4B5563'];
 
 const PageContainer: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = "" }) => (
-  <div className={`w-[210mm] h-[297mm] bg-white shadow-lg mx-auto mb-8 relative overflow-hidden flex flex-col print:shadow-none print:mb-0 print:break-after-page print:w-full print:h-[297mm] ${className}`}>
+  <div className={`w-[210mm] h-[297mm] bg-white shadow-lg mx-auto mb-8 relative overflow-hidden flex flex-col print:shadow-none print:mb-0 print:break-after-page print:w-full print:h-screen print:overflow-hidden ${className}`}>
     {children}
   </div>
 );
@@ -268,8 +268,7 @@ export const ReportPreview = React.forwardRef<HTMLDivElement, ReportPreviewProps
                             fill="url(#colorPrice)" 
                             radius={[6, 6, 0, 0]} 
                             barSize={50}
-                            animationDuration={1500}
-                            animationEasing="ease-out"
+                            isAnimationActive={false} // IMPORTANT for printing
                         />
                     </BarChart>
                 </ResponsiveContainer>
@@ -311,8 +310,7 @@ export const ReportPreview = React.forwardRef<HTMLDivElement, ReportPreviewProps
                             paddingAngle={3}
                             dataKey="value"
                             stroke="none"
-                            animationDuration={1500}
-                            animationEasing="ease-out"
+                            isAnimationActive={false} // IMPORTANT for printing
                         >
                             {data.demandData.map((entry, index) => (
                                 <Cell key={`cell-${index}`} fill={`url(#pieGradient-${index})`} />

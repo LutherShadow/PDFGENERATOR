@@ -60,7 +60,7 @@ const INITIAL_DATA: ReportData = {
 };
 
 export default function App() {
-  // Initialize state from LocalStorage if available to prevent data loss on refresh/new tab
+  // Initialize state from LocalStorage
   const [data, setData] = useState<ReportData>(() => {
       try {
           const saved = localStorage.getItem('reportData');
@@ -100,7 +100,8 @@ export default function App() {
   const componentRef = useRef<HTMLDivElement>(null);
   
   const openInNewTab = () => {
-      window.open(window.location.href, '_blank');
+      // Redirección explícita a la versión de producción en Netlify como solicitó el usuario
+      window.open('https://pdfia.netlify.app/', '_blank');
   };
 
   const validateAndPrint = async () => {
@@ -111,11 +112,11 @@ export default function App() {
     setPdfError(null);
     setPrintFeedback(null);
     setProgress(10);
-    setGenerationStatus('Iniciando validación de datos...');
+    setGenerationStatus('Validando...');
 
     try {
         // Step 1: Data Integrity Validation
-        await new Promise(r => setTimeout(r, 300)); 
+        // Removed artificial delay to keep user interaction token fresh
         
         const errors: string[] = [];
         if (!data.companyName.trim()) errors.push("Nombre de la empresa");
@@ -123,25 +124,25 @@ export default function App() {
         if (!data.properties || data.properties.length === 0) errors.push("Listado de propiedades (mínimo 1)");
 
         if (errors.length > 0) {
-             throw new Error(`Validación fallida. Faltan los siguientes campos obligatorios: ${errors.join(", ")}.`);
+             throw new Error(`Faltan campos: ${errors.join(", ")}.`);
         }
         setProgress(30);
 
-        // Step 2: Asset Verification (Fonts & Images)
-        setGenerationStatus('Verificando recursos gráficos...');
+        // Step 2: Asset Verification
+        setGenerationStatus('Cargando recursos...');
         
-        // Ensure fonts are loaded (with timeout safety)
+        // Quick font check
         try {
             await Promise.race([
                 document.fonts.ready,
-                new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout fonts")), 2000))
+                new Promise((resolve) => setTimeout(resolve, 500)) // Reduced timeout
             ]);
         } catch (e) {
-            console.warn("Advertencia: Las fuentes tardaron demasiado en cargar. El PDF se generará con las fuentes disponibles.");
+            // Ignore font errors
         }
-        setProgress(45);
+        setProgress(50);
 
-        // Ensure images inside the report are loaded
+        // Image check with faster timeout
         const reportElement = componentRef.current;
         if (reportElement) {
              const images = Array.from(reportElement.querySelectorAll('img')) as HTMLImageElement[];
@@ -152,125 +153,79 @@ export default function App() {
                  const imagePromises = images.map(img => {
                     if (img.complete && img.naturalHeight !== 0) {
                         loadedImages++;
-                        setProgress(45 + Math.floor((loadedImages / totalImages) * 45));
                         return Promise.resolve();
                     }
                     return new Promise((resolve) => {
-                        img.onload = () => {
-                            loadedImages++;
-                            setProgress(45 + Math.floor((loadedImages / totalImages) * 45));
-                            resolve(null);
-                        };
-                        img.onerror = () => {
-                            console.warn('Imagen falló al cargar:', img.src);
-                            loadedImages++; // Count as processed even if failed
-                            setProgress(45 + Math.floor((loadedImages / totalImages) * 45));
-                            resolve(null);
-                        };
+                        img.onload = () => { loadedImages++; resolve(null); };
+                        img.onerror = () => { loadedImages++; resolve(null); };
                     });
                 });
                 
-                // Timeout race to prevent hanging indefinitely
+                // Very short timeout to prevent blocking print dialog
                 const imageLoadPromise = Promise.all(imagePromises);
-                const timeoutPromise = new Promise(resolve => setTimeout(resolve, 4000));
+                const timeoutPromise = new Promise(resolve => setTimeout(resolve, 2000));
                 await Promise.race([imageLoadPromise, timeoutPromise]);
              }
         }
+        
         setProgress(100);
         setIsSuccess(true);
-        setGenerationStatus('¡Validación correcta! Preparando documento...');
+        setGenerationStatus('Listo.');
         
-        // Show success message briefly
-        await new Promise(r => setTimeout(r, 1000));
+        // Minimal delay for UI feedback
+        await new Promise(r => setTimeout(r, 500));
 
-        // Close loading overlay explicitly BEFORE printing
         setIsGenerating(false);
         setIsSuccess(false);
         setGenerationStatus('');
         setProgress(0);
         
-        // Slight delay to allow React to remove the overlay from DOM
+        // Execute print immediately in the next tick to ensure state updated
         setTimeout(() => {
             if (typeof window.print === 'function') {
-                // START DIAGNOSTIC LOGGING
-                console.group('🖨️ Diagnóstico de Impresión');
-                console.log('1. [App] Iniciando solicitud de impresión...');
-
+                // DIAGNOSTICS
                 let beforePrintFired = false;
-
-                const handleBeforePrint = () => {
-                    beforePrintFired = true;
-                    console.log('2. [Navegador] ✅ Evento `beforeprint` detectado: El diálogo de impresión se está abriendo.');
-                };
-
-                const handleAfterPrint = () => {
-                    console.log('3. [Navegador] 🏁 Evento `afterprint` detectado: El ciclo de impresión ha finalizado.');
-                    
-                    if (beforePrintFired) {
-                        console.log('ℹ️ [CONCLUSIÓN] El proceso técnico funcionó correctamente.');
-                        console.log('   👉 Si se generó el PDF: El usuario confirmó la acción.');
-                        console.log('   👉 Si NO se generó: El usuario presionó "Cancelar" o cerró el diálogo.');
-                        console.log('   (Nota: Los navegadores no permiten al código saber qué botón pulsó por privacidad).');
-                    } else {
-                        console.error('❌ [ERROR] Se cerró el ciclo sin detectar la apertura del diálogo (`beforeprint`).');
-                    }
-                    console.groupEnd();
-                    
-                    // Cleanup listeners
-                    window.removeEventListener('beforeprint', handleBeforePrint);
-                    window.removeEventListener('afterprint', handleAfterPrint);
-                };
-
+                const handleBeforePrint = () => { beforePrintFired = true; };
+                
+                // Add listeners
                 window.addEventListener('beforeprint', handleBeforePrint);
-                window.addEventListener('afterprint', handleAfterPrint);
 
                 try {
-                    console.log('🚀 [App] Ejecutando window.print()...');
-                    
-                    // Prepare initial feedback
-                    setPrintFeedback({
-                        type: 'info',
-                        message: "Solicitando impresión..."
-                    });
-
+                    console.log("Ejecutando window.print()");
                     window.print();
                     
-                    // Check diagnosis after a short delay to catch "Ignored" or "Blocked" states
+                    // Check if it likely failed (sandbox/blocker)
                     setTimeout(() => {
+                         window.removeEventListener('beforeprint', handleBeforePrint);
+                         
                          if (!beforePrintFired) {
-                             console.error('❌ [DIAGNÓSTICO FINAL] El diálogo de impresión NO se abrió.');
-                             console.warn('   🔍 CAUSA PROBABLE: El navegador o el entorno bloqueó la acción.');
-                             
+                             console.error('Print dialog blocked or ignored.');
                              setPrintFeedback({
                                  type: 'error',
-                                 message: "El navegador bloqueó la impresión. Por favor, abra en una nueva pestaña:"
+                                 message: "Impresión bloqueada por el navegador. Use el botón 'Nueva Pestaña'."
                              });
                          } else {
-                             // If it fired, we just assume it's pending user action or finished
                              setPrintFeedback({
                                 type: 'success',
-                                message: "Diálogo abierto. Si no ve el PDF, verifique si pulsó 'Cancelar' accidentalmente."
+                                message: "Diálogo de impresión abierto."
                             });
                          }
-                    }, 1000);
+                    }, 500);
                     
                 } catch (err) {
-                    console.error('❌ [Error Excepción] Falló window.print():', err);
+                    console.error('Print execution failed:', err);
                     setPrintFeedback({
                         type: 'error',
-                        message: "Error técnico al iniciar la impresión."
+                        message: "Error al imprimir."
                     });
-                    console.groupEnd();
                 }
             } else {
-                console.error('❌ window.print no soportado.');
-                setPdfError("Su navegador no soporta impresión automática. Use Ctrl+P.");
+                setPdfError("Navegador no compatible.");
             }
-        }, 500);
+        }, 50); // Very short delay 50ms
 
     } catch (e: any) {
-        console.error('❌ Error durante la generación del reporte:', e);
-        setPdfError(e.message || "Ocurrió un error inesperado al intentar generar el PDF.");
+        setPdfError(e.message);
         setIsGenerating(false);
         setIsSuccess(false);
     }
@@ -288,7 +243,6 @@ export default function App() {
              const newLogo = reader.result as string;
              setData(prev => {
                  const currentSaved = prev.savedLogos || [];
-                 // Prevent duplicates in library
                  const updatedSaved = currentSaved.includes(newLogo) 
                     ? currentSaved 
                     : [...currentSaved, newLogo];
@@ -314,7 +268,6 @@ export default function App() {
               ...prev,
               savedLogos: newLogos,
               secondaryLogos: newSecondaries,
-              // If we deleted the active logo, switch to the last available one or undefined
               logoImage: isCurrent 
                 ? (newLogos.length > 0 ? newLogos[newLogos.length - 1] : undefined) 
                 : prev.logoImage
@@ -669,7 +622,7 @@ export default function App() {
                     {printFeedback.type === 'error' && (
                         <button 
                             onClick={openInNewTab}
-                            className="ml-auto text-xs bg-white border border-red-200 hover:bg-red-50 text-red-700 px-3 py-1.5 rounded-md font-medium transition-colors shadow-sm"
+                            className="ml-auto text-xs bg-white border border-red-200 hover:bg-red-50 text-red-700 px-3 py-1.5 rounded-md font-medium transition-colors shadow-sm whitespace-nowrap"
                         >
                             Abrir en Nueva Pestaña
                         </button>

@@ -1,5 +1,5 @@
 import { GoogleGenAI, Modality } from "@google/genai";
-import { AspectRatio, ImageSize } from "../types";
+import { AspectRatio, ImageSize } from "../types.ts";
 
 // Helper to remove header from base64 if present
 const cleanBase64 = (b64: string) => b64.replace(/^data:image\/\w+;base64,/, "");

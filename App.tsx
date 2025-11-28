@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ReportPreview } from './components/ReportPreview';
-import { ReportData, ReportTemplate } from './types';
+import { ReportPreview } from './components/ReportPreview.tsx';
+import { ReportData, ReportTemplate } from './types.ts';
 import { Printer, Settings, CheckCircle2, LayoutTemplate, Palette, Upload, Trash2, Hash, X, Plus, Check, Loader2, AlertTriangle, Share2, Info, ExternalLink } from 'lucide-react';
 
 const INITIAL_DATA: ReportData = {
@@ -100,7 +100,7 @@ export default function App() {
   const componentRef = useRef<HTMLDivElement>(null);
   
   const openInNewTab = () => {
-      // Redirección explícita a la versión de producción en Netlify como solicitó el usuario
+      // Redirección explícita a la versión de producción en Netlify
       window.open('https://pdfia.netlify.app/', '_blank');
   };
 
@@ -116,8 +116,6 @@ export default function App() {
 
     try {
         // Step 1: Data Integrity Validation
-        // Removed artificial delay to keep user interaction token fresh
-        
         const errors: string[] = [];
         if (!data.companyName.trim()) errors.push("Nombre de la empresa");
         if (!data.agentName.trim()) errors.push("Nombre del agente");
